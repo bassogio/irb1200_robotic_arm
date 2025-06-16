@@ -1,6 +1,6 @@
-clc;
-clear;
-close all;
+% clc;
+% clear;
+% close all;
 
 % Declare symbolic variables
 syms theta1 theta2 theta3 theta4 theta5 theta6

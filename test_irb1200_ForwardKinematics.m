@@ -20,7 +20,7 @@ test_cases_deg = [
 % Convert to radians
 test_cases_rad = deg2rad(test_cases_deg);
 
-% Step 3: Set link lengths (example values; replace with actual if known)
+% Step 3: Set link lengths 
 d_vals = [0.4, 0.3, 0.2, 0.15, 0.1];  % [d1, d2, d3, d4, d6]
 
 % Step 4: Evaluate T06 for each test case

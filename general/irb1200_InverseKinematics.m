@@ -166,4 +166,3 @@ theta6_pos = simplify(atan2(r31 / s5_pos, r32 / s5_pos));
 theta4_neg = simplify(atan2(r13 / s5_neg, r23 / s5_neg));
 theta6_neg = simplify(atan2(r31 / s5_neg, r32 / s5_neg));
 
-

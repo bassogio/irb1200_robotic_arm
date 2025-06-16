@@ -2,42 +2,26 @@ clc;
 clear;
 close all;
 
-% Load symbolic forward kinematics (defines T06_simplified)
-run('irb1200_ForwardKinematics.m');
+%% Step 1: Define test joint angles (degrees)
+test_angles_deg = [0 0 0 0 0 0];
+test_angles_rad = deg2rad(test_angles_deg);
 
-% === Robot constants ===
-params = struct( ...
-    'd1', 0.399, ...
-    'a2', 0.350, ...
-    'a3', 0.042, ...
-    'd4', 0.351, ...
-    'd6', 0.082 ...
-);
+%% Step 2: Compute FK
+[position, T06] = forward_kinematics_irb1200(test_angles_rad);
 
-% === Ask for joint angles in degrees ===
-theta_deg = input('Enter joint angles [theta1 theta2 theta3 theta4 theta5 theta6] in degrees:\n');
+fprintf('[FORWARD KINEMATICS]\n');
+fprintf('Given joint angles (deg): [%s]\n', num2str(test_angles_deg));
+fprintf('Computed End-Effector Position:\n');
+fprintf('X = %.3f m\nY = %.3f m\nZ = %.3f m\n', position(1), position(2), position(3));
 
-% === Convert to radians ===
-theta_rad = deg2rad(theta_deg);
+%% Step 3: Compute IK (from FK result)
+theta_solved_rad = inverse_kinematics_irb1200(position, T06);
+theta_solved_deg = rad2deg(theta_solved_rad);
 
-% === Create substitution list ===
-symbol_list = {
-    theta1, theta2, theta3, theta4, theta5, theta6, ...
-    d1, a2, a3, d4, d6
-};
+fprintf('\n[INVERSE KINEMATICS]\n');
+fprintf('Recovered joint angles (deg): [%s]\n', num2str(theta_solved_deg, '%.2f '));
 
-values = {
-    theta_rad(1), theta_rad(2), theta_rad(3), ...
-    theta_rad(4), theta_rad(5), theta_rad(6), ...
-    params.d1, params.a2, params.a3, params.d4, params.d6
-};
-
-% === Evaluate FK ===
-T06_numeric = double(subs(T06_simplified, symbol_list, values));
-position = T06_numeric(1:3, 4);
-
-% === Output XYZ ===
-fprintf('\nEnd-effector Position:\n');
-fprintf('X = %.3f m\n', position(1));
-fprintf('Y = %.3f m\n', position(2));
-fprintf('Z = %.3f m\n', position(3));
+%% Step 4: Compare
+fprintf('\n[COMPARISON]\n');
+disp('Original (deg):'); disp(test_angles_deg);
+disp('Recovered (deg):'); disp(theta_solved_deg);

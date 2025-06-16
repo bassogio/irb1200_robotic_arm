@@ -4,9 +4,9 @@
 
 % Declare symbolic variables
 syms theta1 theta2 theta3 theta4 theta5 theta6
-syms d1 d2 d3 d4 d6
+syms d1 a2 a3 d4 d6
 assume([theta1 theta2 theta3 theta4 theta5 theta6],'real');
-assume([d1 d2 d3 d4 d6],'real');
+assume([d1 a2 a3 d4 d6],'real');
 
 %% Define the homogeneous transformation matrices 
 T01 = [ cos(theta1)   0  -sin(theta1)   0;
@@ -14,13 +14,13 @@ T01 = [ cos(theta1)   0  -sin(theta1)   0;
              0       -1       0        d1;
              0        0       0         1 ];
 
-T12 = [ sin(theta2)   cos(theta2)  0   d2*sin(theta2);
-       -cos(theta2)   sin(theta2)  0  -d2*cos(theta2);
+T12 = [ sin(theta2)   cos(theta2)  0   a2*sin(theta2);
+       -cos(theta2)   sin(theta2)  0  -a2*cos(theta2);
             0              0       1       0;
             0              0       0       1 ];
 
-T23 = [ cos(theta3)   0  -sin(theta3)   d3*cos(theta3);
-        sin(theta3)   0   cos(theta3)   d3*sin(theta3);
+T23 = [ cos(theta3)   0  -sin(theta3)   a3*cos(theta3);
+        sin(theta3)   0   cos(theta3)   a3*sin(theta3);
              0       -1       0         0;
              0        0       0         1 ];
 
@@ -46,18 +46,11 @@ T04 = simplify(T03 * T34);
 T05 = simplify(T04 * T45);
 T06 = simplify(T05 * T56);
 %%
-% % Apply trigonometric identity simplification  
-% T06_simplified = simplify(T06, 'Criterion', 'preferReal', 'Steps', 100);
-% 
-% % Display symbolic result  
-% disp('The simplified symbolic transformation matrix T06 is:');
-% disp(T06_simplified);
+% Apply trigonometric identity simplification  
+T06_simplified = simplify(T06, 'Criterion', 'preferReal', 'Steps', 100);
 
-T06_desired = sym('T06_d', [4 4]);  % or use numerical matrix if numeric IK
+% Display symbolic result  
+disp('The simplified symbolic transformation matrix T06 is:');
+disp(T06_simplified);
 
-eqs = T06(1:3,4) == T06_desired(1:3,4); % position
-eqs = [eqs;
-       T06(1:3,1) == T06_desired(1:3,1);  % x-axis
-       T06(1:3,2) == T06_desired(1:3,2);  % y-axis
-       T06(1:3,3) == T06_desired(1:3,3)]; % z-axis
 

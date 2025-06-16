@@ -34,5 +34,5 @@ for i = 1:size(configurations, 1)
         text(origins(1, j), origins(2, j), origins(3, j), sprintf('  J%d', j-1));
     end
 
-    pause(1);  % Wait a second before next update
+    pause(3);  % Wait a second before next update
 end

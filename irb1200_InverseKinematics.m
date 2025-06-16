@@ -1,6 +1,6 @@
-clc;    
-clear;
-close all;
+% clc;    
+% clear;
+% close all;
 
 % Load symbolic FK definitions
 run('irb1200_ForwardKinematics.m');

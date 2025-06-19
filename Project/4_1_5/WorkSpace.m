@@ -1,76 +1,83 @@
-clc; clear; close all;
+% plotWorkspace_IRB1200_numeric.m
+% ------------------------------------------------------------
+% Workspace sampling using *numeric* forwardKinematics().
+% Mirrors the structure of the symbolic script you provided.
+% ------------------------------------------------------------
+clc;
+clear;
+close all;
 
-%% 1. DH constants (cm) ------------
-dh = struct('d1',399,  ... % base → axis 2
-            'a2',350,  ... % axis 2 → axis 3
-            'a3', 42,  ... % axis 3 link offset
-            'd4',351,  ... % axis 4 link
-            'd6', 82);     % flange/tool offset
+% === Robot constants (metres) ===
+params = struct( ...
+    'd1', 0.399, ...
+    'a2', 0.350, ...
+    'a3', 0.042, ...
+    'd4', 0.351, ...
+    'd6', 0.082 ...
+);
 
-%% 2. Joint limits (radians) -------
-% [min, max] for axes 1…6  (ABB IRB1200-5/0.9; adapt if needed)
-degLimits = [ -170,  170;      % θ1
-               -85,  120;      % θ2
-              -120,  158;      % θ3
-              -400,  400;      % θ4
-              -125,  125;      % θ5
-              -400,  400 ];    % θ6
-radLimits = deg2rad(degLimits);
+% === Discretisation step size ===
+angle_step = 10;                   % degrees
+theta_range = deg2rad(0:angle_step:180);  % 0–180° in radians
 
-%% 3. Sampling parameters ----------
-N = 20000;                       % number of random configs
-thetas = zeros(6,N);
+% === Initialise point cloud ===
+workspace_points = [];
 
-for i = 1:6
-    thetas(i,:) = radLimits(i,1) + (radLimits(i,2)-radLimits(i,1)) * rand(1,N);
+% === Loop over all combinations of θ1, θ2, θ3 ===
+fprintf('Calculating reachable points...\n');
+total   = numel(theta_range)^3;
+counter = 0;
+
+for t1 = theta_range
+    for t2 = theta_range
+        for t3 = theta_range
+            
+            % Joint vector (θ4–θ6 = 0 → fixed tool orientation)
+            thetas = [t1; t2; t3; 0; 0; 0];
+            
+            % Numeric forward kinematics
+            [T06, ~, ~] = forwardKinematics(params, thetas);
+            p = T06(1:3, 4);                % end-effector position
+            workspace_points = [workspace_points; p']; %#ok<AGROW>
+            
+            % Progress display (10 % increments)
+            counter = counter + 1;
+            if mod(counter, round(total/10)) == 0
+                fprintf('%.0f%% complete\n', 100 * counter / total);
+            end
+        end
+    end
 end
 
-%% 4. Forward kinematics loop -------
-points = zeros(3,N);
+% === Plot workspace only (no robot) ===
+figure('Name', 'IRB 1200 Workspace Views (numeric FK)', ...
+       'NumberTitle', 'off');
 
-for k = 1:N
-    [T06, ~, ~] = forwardKinematics(dh, thetas(:,k));
-    points(:,k) = T06(1:3,4);   % store x,y,z
-end
-
-%% 5. Plotting ----------------------
-figure('Name','IRB1200 Workspace','Color','w');
-
-% 5a. 3-D workspace
+% Plot 1: 3-D isometric
 subplot(2,2,1);
-scatter3(points(1,:), points(2,:), points(3,:), 5, '.');
-axis equal; grid on;
-xlabel('X [cm]'); ylabel('Y [cm]'); zlabel('Z [cm]');
-title('3-D Workspace');
+scatter3(workspace_points(:,1), workspace_points(:,2), ...
+         workspace_points(:,3), 10, 'b', 'filled');
+title('Isometric View');
+xlabel('X [m]'); ylabel('Y [m]'); zlabel('Z [m]');
+axis equal; grid on; view(45, 30);
 
-% 5b. XY projection
+% Plot 2: Top view (X-Y)
 subplot(2,2,2);
-scatter(points(1,:), points(2,:), 5, '.');
+scatter(workspace_points(:,1), workspace_points(:,2), 10, 'filled');
+title('Top View (X-Y)');
+xlabel('X [m]'); ylabel('Y [m]');
 axis equal; grid on;
-xlabel('X [cm]'); ylabel('Y [cm]');
-title('XY View');
 
-% 5c. XZ projection
+% Plot 3: Front view (X-Z)
 subplot(2,2,3);
-scatter(points(1,:), points(3,:), 5, '.');
+scatter(workspace_points(:,1), workspace_points(:,3), 10, 'filled');
+title('Front View (X-Z)');
+xlabel('X [m]'); ylabel('Z [m]');
 axis equal; grid on;
-xlabel('X [cm]'); ylabel('Z [cm]');
-title('XZ View');
 
-% 5d. YZ projection
+% Plot 4: Side view (Y-Z)
 subplot(2,2,4);
-scatter(points(2,:), points(3,:), 5, '.');
+scatter(workspace_points(:,2), workspace_points(:,3), 10, 'filled');
+title('Side View (Y-Z)');
+xlabel('Y [m]'); ylabel('Z [m]');
 axis equal; grid on;
-xlabel('Y [cm]'); ylabel('Z [cm]');
-title('YZ View');
-
-sgtitle('ABB IRB1200 Reachable Workspace');
-
-%% 6. (Optional) show one arm pose ---
-% Pick the first sampled pose and overlay its stick model in 3-D view
-hold(subplot(2,2,1),'on');
-[~, origins, ~] = forwardKinematics(dh, thetas(:,1));
-plot3(origins(1,:), origins(2,:), origins(3,:), 'k-', 'LineWidth', 1.5);
-plot3(origins(1,:), origins(2,:), origins(3,:), 'ro', 'MarkerSize', 4, ...
-      'MarkerFaceColor','r');
-legend('Reachable points','Sample pose','Location','best');

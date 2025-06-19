@@ -1,6 +1,4 @@
-% clc;
-% clear;
-% close all;
+clc; clear; close all;
 
 % Declare symbolic variables
 syms theta1 theta2 theta3 theta4 theta5 theta6
@@ -49,8 +47,8 @@ T06 = simplify(T05 * T56);
 % Apply trigonometric identity simplification  
 T06_simplified = simplify(T06, 'Criterion', 'preferReal', 'Steps', 100);
 
-% % Display symbolic result  
-% disp('The simplified symbolic transformation matrix T06 is:');
-% disp(T06_simplified);
+% Display symbolic result  
+disp('The simplified symbolic transformation matrix T06 is:');
+disp(T06_simplified);
 
 

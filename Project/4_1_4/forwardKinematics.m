@@ -1,37 +1,40 @@
 function [T06, origins, rots] = forwardKinematics(dh, thetas)
 % forwardKinematics  Compute 0→6 transform, joint origins, and rotations.
-% If `thetas` is omitted or empty, returns symbolic expressions in
-% theta1…theta6.
+%   Input:
+%     dh     – struct with fields d1,a2,a3,d4,d6
+%     thetas – 6×1 vector of joint angles [θ1;…;θ6] in radians
+%
+%   Output:
+%     T06     – 4×4 homogeneous transform from base→tool
+%     origins – 3×7 matrix of joint positions (columns 1→7)
+%     rots    – 3×3×7 array of joint rotation matrices
 
-    % If no angles provided, define symbolic parameters
-    if nargin < 2 || isempty(thetas)
-        syms theta1 theta2 theta3 theta4 theta5 theta6 real
-        thetas = [theta1; theta2; theta3; theta4; theta5; theta6];
-    end
+    assert(numel(thetas)==6, 'Must supply a 6×1 vector of thetas');
 
     % Unpack DH constants
-    d1 = dh.d1; a2 = dh.a2; a3 = dh.a3; d4 = dh.d4; d6 = dh.d6;
+    d1 = dh.d1;  a2 = dh.a2;  a3 = dh.a3;
+    d4 = dh.d4;  d6 = dh.d6;
 
-    % Apply joint-specific offsets (same as before)
+    % Apply joint-specific offsets
     t = [ thetas(1);
           thetas(2) - pi/2;
           thetas(3);
           thetas(4);
           thetas(5);
-          thetas(6) - pi ];
+          thetas(6) - pi];
 
-    % DH arrays
+    % DH parameters
     a     = [   0,  a2,  a3,   0,   0,   0 ];
     d     = [  d1,   0,   0,  d4,   0,  d6 ];
-    alpha = [-pi/2,  0, -pi/2, pi/2,-pi/2, 0 ];
+    alpha = [-pi/2,  0, -pi/2, pi/2, -pi/2, 0 ];
 
-    % Initialize outputs
+    % Preallocate
     T       = eye(4);
-    origins = sym(zeros(3,7));           % make symbolic if needed
-    rots    = sym(repmat(eye(3),[1,1,7]));
+    origins = zeros(3,7);
+    rots    = repmat(eye(3), [1,1,7]);
     origins(:,1) = [0;0;0];
 
-    % Build transforms
+    % Build chain
     for i = 1:6
         ct = cos(t(i));  st = sin(t(i));
         ca = cos(alpha(i));  sa = sin(alpha(i));

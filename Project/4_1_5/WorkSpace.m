@@ -1,104 +1,76 @@
-% plotIRB1200_Workspace
 clc; clear; close all;
 
-%% 1. Load symbolic FK & robot parameters
-run('irb1200_ForwardKinematics.m');   % defines T06_simplified, θ1…θ6, d1,a2,a3,d4,d6
+%% 1. DH constants (cm) ------------
+dh = struct('d1',399,  ... % base → axis 2
+            'a2',350,  ... % axis 2 → axis 3
+            'a3', 42,  ... % axis 3 link offset
+            'd4',351,  ... % axis 4 link
+            'd6', 82);     % flange/tool offset
 
-params = struct( ...
-    'd1', 0.399, ...    % [m]
-    'a2', 0.350, ...    % [m]
-    'a3', 0.042, ...    % [m]
-    'd4', 0.351, ...    % [m]
-    'd6', 0.082 ...     % [m]
-);
+%% 2. Joint limits (radians) -------
+% [min, max] for axes 1…6  (ABB IRB1200-5/0.9; adapt if needed)
+degLimits = [ -170,  170;      % θ1
+               -85,  120;      % θ2
+              -120,  158;      % θ3
+              -400,  400;      % θ4
+              -125,  125;      % θ5
+              -400,  400 ];    % θ6
+radLimits = deg2rad(degLimits);
 
-limits = [ -170,  170;    % θ1 (deg)
-           -100,  135;    % θ2 (deg)
-           -200,   70 ];  % θ3 (deg)
+%% 3. Sampling parameters ----------
+N = 20000;                       % number of random configs
+thetas = zeros(6,N);
 
-% fix wrist joints at zero
-fixed_t4 = 0;
-fixed_t5 = 0;
-fixed_t6 = 0;
-
-%% 2. Discretization for joints 1–3
-angle_step  = 15;  % degrees
-t1_vals     = limits(1,1):angle_step:limits(1,2);
-t2_vals     = limits(2,1):angle_step:limits(2,2);
-t3_vals     = limits(3,1):angle_step:limits(3,2);
-
-n1 = numel(t1_vals);
-n2 = numel(t2_vals);
-n3 = numel(t3_vals);
-total = n1 * n2 * n3;
-
-% preallocate
-pts = zeros(total,3);
-
-%% 3. Prepare symbolic substitution
-symbol_list = {
-    theta1, theta2, theta3, theta4, theta5, theta6, ...
-    d1,      a2,      a3,      d4,      d6
-};
-fixed_params = {
-    params.d1, params.a2, params.a3, ...
-    params.d4, params.d6
-};
-
-%% 4. Compute workspace (position only)
-hWB = waitbar(0,'Computing workspace...','Name','Progress');
-idx = 1;
-for t1 = deg2rad(t1_vals)
-  for t2 = deg2rad(t2_vals)
-    for t3 = deg2rad(t3_vals)
-      % build substitution values
-      angles = {t1, t2, t3, 0, 0, 0};
-      vals   = [angles, fixed_params];
-
-      % eval T06
-      Tnum = double( subs(T06_simplified, symbol_list, vals) );
-      p    = Tnum(1:3,4);
-
-      pts(idx,:) = p.';  
-      idx = idx + 1;
-
-      % update waitbar
-      if mod(idx,1000)==0 || idx>total
-        waitbar(idx/total,hWB);
-        if ~isvalid(hWB), error('User cancelled.'); end
-      end
-    end
-  end
+for i = 1:6
+    thetas(i,:) = radLimits(i,1) + (radLimits(i,2)-radLimits(i,1)) * rand(1,N);
 end
-close(hWB);
 
-%% 5. Plot all four views
-figure('Name','IRB-1200 Position Workspace','Position',[50 50 1000 600]);
+%% 4. Forward kinematics loop -------
+points = zeros(3,N);
 
-% 3D
+for k = 1:N
+    [T06, ~, ~] = forwardKinematics(dh, thetas(:,k));
+    points(:,k) = T06(1:3,4);   % store x,y,z
+end
+
+%% 5. Plotting ----------------------
+figure('Name','IRB1200 Workspace','Color','w');
+
+% 5a. 3-D workspace
 subplot(2,2,1);
-scatter3(pts(:,1),pts(:,2),pts(:,3),10,'.','MarkerEdgeAlpha',0.4);
-axis equal; grid on; view(45,30);
-xlabel('X (m)'); ylabel('Y (m)'); zlabel('Z (m)');
-title('3D Workspace');
+scatter3(points(1,:), points(2,:), points(3,:), 5, '.');
+axis equal; grid on;
+xlabel('X [cm]'); ylabel('Y [cm]'); zlabel('Z [cm]');
+title('3-D Workspace');
 
-% Top (X–Y)
+% 5b. XY projection
 subplot(2,2,2);
-scatter(pts(:,1),pts(:,2),10,'.','MarkerEdgeAlpha',0.4);
+scatter(points(1,:), points(2,:), 5, '.');
 axis equal; grid on;
-xlabel('X (m)'); ylabel('Y (m)');
-title('Top View (X–Y)');
+xlabel('X [cm]'); ylabel('Y [cm]');
+title('XY View');
 
-% Front (X–Z)
+% 5c. XZ projection
 subplot(2,2,3);
-scatter(pts(:,1),pts(:,3),10,'.','MarkerEdgeAlpha',0.4);
+scatter(points(1,:), points(3,:), 5, '.');
 axis equal; grid on;
-xlabel('X (m)'); ylabel('Z (m)');
-title('Front View (X–Z)');
+xlabel('X [cm]'); ylabel('Z [cm]');
+title('XZ View');
 
-% Side (Y–Z)
+% 5d. YZ projection
 subplot(2,2,4);
-scatter(pts(:,2),pts(:,3),10,'.','MarkerEdgeAlpha',0.4);
+scatter(points(2,:), points(3,:), 5, '.');
 axis equal; grid on;
-xlabel('Y (m)'); ylabel('Z (m)');
-title('Side View (Y–Z)');
+xlabel('Y [cm]'); ylabel('Z [cm]');
+title('YZ View');
+
+sgtitle('ABB IRB1200 Reachable Workspace');
+
+%% 6. (Optional) show one arm pose ---
+% Pick the first sampled pose and overlay its stick model in 3-D view
+hold(subplot(2,2,1),'on');
+[~, origins, ~] = forwardKinematics(dh, thetas(:,1));
+plot3(origins(1,:), origins(2,:), origins(3,:), 'k-', 'LineWidth', 1.5);
+plot3(origins(1,:), origins(2,:), origins(3,:), 'ro', 'MarkerSize', 4, ...
+      'MarkerFaceColor','r');
+legend('Reachable points','Sample pose','Location','best');

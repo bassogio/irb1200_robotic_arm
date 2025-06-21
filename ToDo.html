@@ -198,11 +198,30 @@
     redoBtn.onclick=()=>{if(redoStack.length){undoStack.push(JSON.stringify(todos));todos=JSON.parse(redoStack.pop());saveTodos();renderTodos();}};
 
     /* ------------ import / export ------------ */
-    exportBtn.onclick=()=>{
-      const blob=new Blob([JSON.stringify(todos,null,2)],{type:'application/json'});
-      const url=URL.createObjectURL(blob);
-      const a=Object.assign(document.createElement('a'),{href:url,download:'todos.json'});
-      document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+    exportBtn.onclick=async()=>{
+      const data = JSON.stringify(todos, null, 2);
+      // Use File System Access API if available
+      if (window.showSaveFilePicker) {
+        try {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: 'todos.json',
+            types: [{
+              description: 'JSON Files',
+              accept: {'application/json': ['.json']}
+            }]
+          });
+          const writable = await handle.createWritable();
+          await writable.write(data);
+          await writable.close();
+          alert('Exported!');
+        } catch (e) { if (e.name !== 'AbortError') alert('Export failed.'); }
+      } else {
+        // fallback for browsers without File System Access API
+        const blob=new Blob([data],{type:'application/json'});
+        const url=URL.createObjectURL(blob);
+        const a=Object.assign(document.createElement('a'),{href:url,download:'todos.json'});
+        document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+      }
     };
     importBtn.onclick=()=>importInput.click();
     importInput.onchange=e=>{

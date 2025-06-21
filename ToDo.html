@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Interactive To-Do List</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2em; }
+    .todo-item { margin-bottom: 1em; }
+    .comment, .assignee { width: 150px; margin-left: 5px; }
+    .remove-btn, .move-btn { margin-left: 10px; cursor: pointer; }
+    .remove-btn { color: red; }
+    .move-btn { color: #333; }
+    .completed { text-decoration: line-through; color: #888; }
+    .controls { margin-bottom: 1em; }
+  </style>
+</head>
+<body>
+  <h1>To-Do List</h1>
+  <div class="controls">
+    <button id="undoBtn">Undo</button>
+    <button id="redoBtn">Redo</button>
+  </div>
+  <form id="addForm">
+    <input type="text" id="newTask" placeholder="Add a new task..." required>
+    <input type="text" id="newAssignee" placeholder="Who is working on this?" class="assignee">
+    <button type="submit">Add</button>
+  </form>
+  <ul id="todoList"></ul>
+
+  <script>
+    const addForm = document.getElementById('addForm');
+    const newTask = document.getElementById('newTask');
+    const newAssignee = document.getElementById('newAssignee');
+    const todoList = document.getElementById('todoList');
+    const undoBtn = document.getElementById('undoBtn');
+    const redoBtn = document.getElementById('redoBtn');
+
+    // Undo/redo stacks
+    let undoStack = [];
+    let redoStack = [];
+
+    // Load tasks from localStorage
+    let todos = JSON.parse(localStorage.getItem('todos') || '[]');
+    renderTodos();
+
+    function saveState() {
+      undoStack.push(JSON.stringify(todos));
+      if (undoStack.length > 100) undoStack.shift(); // Limit stack size
+      redoStack = [];
+    }
+
+    function saveTodos() {
+      localStorage.setItem('todos', JSON.stringify(todos));
+    }
+
+    addForm.onsubmit = function(e) {
+      e.preventDefault();
+      saveState();
+      todos.push({ 
+        text: newTask.value, 
+        done: false, 
+        comment: '', 
+        assignee: newAssignee.value 
+      });
+      saveTodos();
+      renderTodos();
+      newTask.value = '';
+      newAssignee.value = '';
+    };
+
+    function renderTodos() {
+      todoList.innerHTML = '';
+      todos.forEach((todo, idx) => {
+        const li = document.createElement('li');
+        li.className = 'todo-item';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = todo.done;
+        checkbox.onchange = () => {
+          saveState();
+          todos[idx].done = checkbox.checked;
+          saveTodos();
+          renderTodos();
+        };
+
+        const label = document.createElement('span');
+        label.textContent = ' ' + todo.text + ' ';
+        if (todo.done) label.className = 'completed';
+
+        const assignee = document.createElement('input');
+        assignee.type = 'text';
+        assignee.placeholder = 'Who is working on this?';
+        assignee.className = 'assignee';
+        assignee.value = todo.assignee || '';
+        assignee.oninput = () => {
+          saveState();
+          todos[idx].assignee = assignee.value;
+          saveTodos();
+        };
+
+        const comment = document.createElement('input');
+        comment.type = 'text';
+        comment.placeholder = 'Add comment...';
+        comment.className = 'comment';
+        comment.value = todo.comment;
+        comment.oninput = () => {
+          saveState();
+          todos[idx].comment = comment.value;
+          saveTodos();
+        };
+
+        const upBtn = document.createElement('button');
+        upBtn.textContent = '↑';
+        upBtn.className = 'move-btn';
+        upBtn.disabled = idx === 0;
+        upBtn.onclick = (e) => {
+          e.preventDefault();
+          if (idx > 0) {
+            saveState();
+            [todos[idx - 1], todos[idx]] = [todos[idx], todos[idx - 1]];
+            saveTodos();
+            renderTodos();
+          }
+        };
+
+        const downBtn = document.createElement('button');
+        downBtn.textContent = '↓';
+        downBtn.className = 'move-btn';
+        downBtn.disabled = idx === todos.length - 1;
+        downBtn.onclick = (e) => {
+          e.preventDefault();
+          if (idx < todos.length - 1) {
+            saveState();
+            [todos[idx + 1], todos[idx]] = [todos[idx], todos[idx + 1]];
+            saveTodos();
+            renderTodos();
+          }
+        };
+
+        const removeBtn = document.createElement('button');
+        removeBtn.textContent = 'Remove';
+        removeBtn.className = 'remove-btn';
+        removeBtn.onclick = (e) => {
+          e.preventDefault();
+          saveState();
+          todos.splice(idx, 1);
+          saveTodos();
+          renderTodos();
+        };
+
+        li.appendChild(checkbox);
+        li.appendChild(label);
+        li.appendChild(assignee);
+        li.appendChild(comment);
+        li.appendChild(upBtn);
+        li.appendChild(downBtn);
+        li.appendChild(removeBtn);
+        todoList.appendChild(li);
+      });
+    }
+
+    undoBtn.onclick = function() {
+      if (undoStack.length > 0) {
+        redoStack.push(JSON.stringify(todos));
+        todos = JSON.parse(undoStack.pop());
+        saveTodos();
+        renderTodos();
+      }
+    };
+
+    redoBtn.onclick = function() {
+      if (redoStack.length > 0) {
+        undoStack.push(JSON.stringify(todos));
+        todos = JSON.parse(redoStack.pop());
+        saveTodos();
+        renderTodos();
+      }
+    };
+  </script>
+</body>
+</html>

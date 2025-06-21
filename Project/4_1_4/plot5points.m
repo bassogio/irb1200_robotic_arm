@@ -1,4 +1,3 @@
-% plotIRB1200
 clc; clear; close all;
 
 % DH constants (cm)

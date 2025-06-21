@@ -1,27 +1,28 @@
-clc;
-clear;
-close all;
+% TestInverseKinematics.m  –  verify every IK solution
+clc; clear; close all;
 
-%% Step 1: Define test joint angles (degrees)
-test_angles_deg = [0 0 0 0 0 0];
-test_angles_rad = deg2rad(test_angles_deg);
+%% 1. Robot constants (mm)  ─────────────────────────────────────────────
+dh = struct('d1',399,'a2',350,'a3',42,'d4',351,'d6',82);
 
-%% Step 2: Compute FK
-[position, T06] = forward_kinematics_irb1200(test_angles_rad);
+%% 2. Desired TCP point (mm)
+xyz = [250; 5; 791];
 
-fprintf('[FORWARD KINEMATICS]\n');
-fprintf('Given joint angles (deg): [%s]\n', num2str(test_angles_deg));
-fprintf('Computed End-Effector Position:\n');
-fprintf('X = %.3f m\nY = %.3f m\nZ = %.3f m\n', position(1), position(2), position(3));
+%% 3. Inverse kinematics  (rad)  ───────────────────────────────────────
+Q = InverseKinematics(dh, xyz);     % 6×N matrix
 
-%% Step 3: Compute IK (from FK result)
-theta_solved_rad = inverse_kinematics_irb1200(position, T06);
-theta_solved_deg = rad2deg(theta_solved_rad);
+%% 4. Print table θ₁…θ₆ (deg) + FK XYZ (mm)  ───────────────────────────
+N = size(Q,2);
+fprintf('\n%-7s | %6s%6s%6s%6s%6s%6s || %9s%9s%9s\n', ...
+        'Sol #', 'θ1', 'θ2', 'θ3', 'θ4', 'θ5', 'θ6', 'X  (mm)', 'Y  (mm)', 'Z  (mm)');
+fprintf('%s\n', repmat('-',1,7+1+6*6+3+3*9));   % divider
 
-fprintf('\n[INVERSE KINEMATICS]\n');
-fprintf('Recovered joint angles (deg): [%s]\n', num2str(theta_solved_deg, '%.2f '));
+for k = 1:N
+    thetaDeg = rad2deg(Q(:,k));
 
-%% Step 4: Compare
-fprintf('\n[COMPARISON]\n');
-disp('Original (deg):'); disp(test_angles_deg);
-disp('Recovered (deg):'); disp(theta_solved_deg);
+    % Forward kinematics → end-effector XYZ (mm)
+    [~,origins,~] = forwardKinematics(dh, Q(:,k));
+    p = origins(:,end);           % 3×1
+
+    fprintf('%7d | %6.1f%6.1f%6.1f%6.1f%6.1f%6.1f || %9.1f%9.1f%9.1f\n', ...
+            k, thetaDeg, p);
+end

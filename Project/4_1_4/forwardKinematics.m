@@ -1,13 +1,4 @@
 function [T06, origins, rots] = forwardKinematics(dh, thetas)
-% forwardKinematics  Compute 0→6 transform, joint origins, and rotations.
-%   Input:
-%     dh     – struct with fields d1,a2,a3,d4,d6
-%     thetas – 6×1 vector of joint angles [θ1;…;θ6] in radians
-%
-%   Output:
-%     T06     – 4×4 homogeneous transform from base→tool
-%     origins – 3×7 matrix of joint positions (columns 1→7)
-%     rots    – 3×3×7 array of joint rotation matrices
 
     assert(numel(thetas)==6, 'Must supply a 6×1 vector of thetas');
 

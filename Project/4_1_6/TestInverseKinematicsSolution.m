@@ -1,72 +1,64 @@
-% testInverseIK.m
+% plotIRB1200_IK  –  Draw the ABB-IRB1200 for every IK solution
 clc; clear; close all;
 
-% DH constants (cm)
+%% 1.  Robot DH constants (cm)  (must match forwardKinematics.m)
 dh = struct('d1',399,'a2',350,'a3',42,'d4',351,'d6',82);
 
-% Define test positions [x, y, z] in cm
-test_pts = [ ...
-    200,   0, 300;   % in front, above base
-      0, 200, 300;   % to the side
-    -200, 100, 200;  % behind & to the side
-    100, -150, 250   % diagonal down
-];
+%% 2.  Desired tool-centre-point in centimetres
+goal_cm = [0.5; 0.5; 0.8];        
 
-axisLen = 50;                      % axis arrow length
-quivOpts = {'AutoScale','off','MaxHeadSize',1,'LineWidth',1.2};
-cols3    = {'r','g','b'};          % X=red, Y=green, Z=blue
-labels   = {'X','Y','Z'};
+%% 3.  Inverse kinematics  → 6×N joint sets (radians)
+Q = InverseKinematics(dh, goal_cm); 
 
-for k = 1:size(test_pts,1)
-    P = test_pts(k,:)';
+%% 4.  Pretty table of all θ-solutions (deg) and the XYZ from the ForwardKinematics  ----------------------------
+Qdeg = rad2deg(Q);            % angles for display
+N    = size(Q,2);
+
+fprintf('\n%-6s | %6s%6s%6s%6s%6s%6s || %9s%9s%9s   (from FK)\n',...
+        'Sol#','θ1','θ2','θ3','θ4','θ5','θ6','X(cm)','Y(cm)','Z(cm)');
+fprintf('%s\n', repmat('-',1,6 + 1 + 6*6 + 3 + 3*9));  % divider
+
+for k = 1:N
+    % Run forward kinematics to get XYZ in *centimetres*
+    [~,origins,~] = forwardKinematics(dh, Q(:,k));
+    p_cm = origins(:,end);          % FK position
     
-    % Build T06: identity rotation + desired position
-    T06 = [ eye(3), P; 
-            0 0 0    1 ];
+    fprintf('%6d | %6.1f%6.1f%6.1f%6.1f%6.1f%6.1f || %9.2f%9.2f%9.2f\n',...
+            k, Qdeg(:,k), p_cm);
+end
+
+%% 5.  Plot each solution  ----------------------------------------------
+axisLen = 5;                       % arrow length in cm
+quivOpt = {'AutoScale','off','MaxHeadSize',0.9,'LineWidth',1.2};
+cols    = {'r','g','b'};           % X,Y,Z colour code
+lbl     = {'X','Y','Z'};
+
+for k = 1:N
+    figure('Name',sprintf('Solution %d',k), 'NumberTitle','off');
     
-    % Compute IK solutions (expects inverseKinematics.m on path)
-    sols = InverseKinematic(dh, T06);
+    % Forward kinematics for this θ-set
+    [~,orig,rots] = forwardKinematics(dh, Q(:,k));
     
-    % New figure per test point
-    fig = figure('Name',sprintf('Target (%.0f,%.0f,%.0f)',P), ...
-                 'NumberTitle','off');
-    hold on; grid on; axis equal;
-    xlabel('X (cm)'); ylabel('Y (cm)'); zlabel('Z (cm)');
-    view(45,30);
+    % Draw links
+    plot3(orig(1,:),orig(2,:),orig(3,:),'-ok','LineWidth',2,'MarkerSize',4);
+    hold on;
     
-    % Plot the desired point
-    plot3(P(1),P(2),P(3),'kp','MarkerSize',12,'MarkerFaceColor','y');
-    text(P(1),P(2),P(3)+10,'Target','FontWeight','bold');
-    
-    % Loop over IK candidates
-    colors = lines(numel(sols));  % distinct color per solution
-    for si = 1:numel(sols)
-        th = sols(si).theta;       % 6×1 joint vector
-        
-        % Forward‐kinematics to get joint frames
-        [T06_fk, origins, rots] = forwardKinematics(dh, th);
-        
-        % Plot the stick figure
-        plot3(origins(1,:),origins(2,:),origins(3,:),'-o', ...
-              'Color',colors(si,:),'LineWidth',1.5,'MarkerSize',3);
-        
-        % Optionally plot joint frames
-        for j = 1:7
-            O = origins(:,j);
-            Rj = rots(:,:,j);
-            for ii = 1:3
-                v = Rj(:,ii)*axisLen;
-                quiver3(O(1),O(2),O(3),v(1),v(2),v(3), ...
-                        cols3{ii}, quivOpts{:});
-            end
+    % Draw joint frames
+    for j = 1:size(orig,2)
+        O = orig(:,j);  R = rots(:,:,j);
+        for ax = 1:3
+            v = R(:,ax)*axisLen;
+            quiver3(O(1),O(2),O(3), v(1),v(2),v(3), cols{ax}, quivOpt{:});
+            text(O(1)+1.1*v(1), O(2)+1.1*v(2), O(3)+1.1*v(3), ...
+                 sprintf('%s%d', lbl{ax}, j-1), ...
+                 'FontSize',8,'FontWeight','bold','Color',cols{ax});
         end
-        
-        % Annotate solution number
-        text(origins(1,end),origins(2,end),origins(3,end), ...
-             sprintf('Sol %d',si), 'Color',colors(si,:), ...
-             'FontSize',9,'FontWeight','bold');
     end
     
-    title(sprintf('IK for Target [%.0f,%.0f,%.0f] (cm)',P));
+    % Cosmetics
+    axis equal;  grid on;
+    xlabel('X (cm)'); ylabel('Y (cm)'); zlabel('Z (cm)');
+    view(45,30);
+    title(sprintf('Solution %d  –  θ = [%s]°', k, num2str(Qdeg(:,k).', '%.1f ')));
     hold off;
 end

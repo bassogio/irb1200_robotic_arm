@@ -1,0 +1,119 @@
+[
+  {
+    "text": "4.1.4 קינמטיקה ישירה",
+    "done": true,
+    "comment": "",
+    "assignee": "Giordano",
+    "subtasks": [
+      {
+        "text": "מטריצת הטרנספורמציה בין כל מערכת צירים",
+        "done": true,
+        "assignee": "",
+        "comment": "parametric\\irb1200_ForwardKinematics.m"
+      },
+      {
+        "text": "חישוב מטריצת הטרנספורמציה ההומוגנית של יחידת הקצה",
+        "done": true,
+        "assignee": "",
+        "comment": "parametric\\irb1200_ForwardKinematics.m"
+      },
+      {
+        "text": "בדיקה עבור 5 נקודות",
+        "done": true,
+        "assignee": "",
+        "comment": "Project\\4_1_4\\plot5points.m"
+      }
+    ]
+  },
+  {
+    "text": "חישוב מרחב העבודה של הרובוט 4.1.5",
+    "done": true,
+    "comment": "",
+    "assignee": "Giordano",
+    "subtasks": [
+      {
+        "text": "מבצעים דיסקרטיזציה בגדלים קבועים של ערכי הזוויות והאורכים של מפרקי הרובוט ומציירים במרחב נקודה בכל מקום אליו הרובוט יכול להגיע.",
+        "done": true,
+        "assignee": "",
+        "comment": "Project\\4_1_5\\WorkSpace.m"
+      },
+      {
+        "text": "מבט XY",
+        "done": true,
+        "assignee": "",
+        "comment": ""
+      },
+      {
+        "text": "מבט XZ",
+        "done": true,
+        "assignee": "",
+        "comment": ""
+      },
+      {
+        "text": "מבט ZY",
+        "done": true,
+        "assignee": "",
+        "comment": ""
+      }
+    ]
+  },
+  {
+    "text": "קינמטיקה הפוכה 4.1.6",
+    "done": false,
+    "comment": "",
+    "assignee": "",
+    "subtasks": [
+      {
+        "text": "הציגו את פיתוח משוואת הקינמטיקה ההפוכה",
+        "done": true,
+        "assignee": "",
+        "comment": "parametric\\irb1200_ForwardKinematics.m"
+      },
+      {
+        "text": "האם יש פתרון יחיד או ריבוי פתרונות? אם יש ריבוי הציגו את אופן בחירת הפתרון הרצוי.",
+        "done": false,
+        "assignee": "",
+        "comment": ""
+      },
+      {
+        "text": "בדקו את משוואות הקינמטיקה ההפוכה ע\"י הצבת הנקודות שקיבלתם",
+        "done": false,
+        "assignee": "",
+        "comment": ""
+      },
+      {
+        "text": "האם התקבלו הזוויות ואורכי המפרקים שבחרתם בסעיף",
+        "done": false,
+        "assignee": "",
+        "comment": ""
+      }
+    ]
+  },
+  {
+    "text": " היעקביאן של הרובוט 4.1.7",
+    "done": false,
+    "comment": "",
+    "assignee": "",
+    "subtasks": [
+      {
+        "text": "חשבו את יעקביאן הרובוט הקווי והסיבובי ליחידת הקצה, והציגו חישוב זה.",
+        "done": false,
+        "assignee": "",
+        "comment": ""
+      },
+      {
+        "text": "חישוב הסטטיקה של הרובוטהציגו בחישוב אנליטי מה המומנטים )או הכוחות( הנדרשים במפרקי הרובוט כדי לשאת\nמשא במשקל M ביחידת הקצה.",
+        "done": false,
+        "assignee": "",
+        "comment": ""
+      }
+    ]
+  },
+  {
+    "text": "תכנון תנועה 4.1.9",
+    "done": false,
+    "comment": "",
+    "assignee": "",
+    "subtasks": []
+  }
+]

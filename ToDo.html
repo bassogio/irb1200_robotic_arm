@@ -5,177 +5,215 @@
   <title>Interactive To-Do List</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 2em; }
-    .todo-item { margin-bottom: 1em; }
-    .comment, .assignee { width: 150px; margin-left: 5px; }
-    .remove-btn, .move-btn { margin-left: 10px; cursor: pointer; }
-    .remove-btn { color: red; }
-    .move-btn { color: #333; }
-    .completed { text-decoration: line-through; color: #888; }
-    .controls { margin-bottom: 1em; }
+    .todo-item   { margin-bottom: 1em; }
+    .remove-btn,
+    .move-btn    { margin-left: 10px; cursor: pointer; }
+    .remove-btn  { color: red; }
+    .move-btn    { color: #333; }
+    .completed   { text-decoration: line-through; color: #888; }
+    .controls    { margin-bottom: 1em; }
+
+    /* editable span look */
+    .editable{
+      display:inline-block;
+      min-width:6em;
+      padding:2px 4px;
+      border:1px solid #ccc;
+      border-radius:3px;
+    }
+    .editable:focus{ outline:2px solid #2684ff; }
+    /* faux placeholder */
+    .editable:empty:before{
+      content:attr(data-placeholder);
+      color:#aaa;
+    }
   </style>
 </head>
 <body>
   <h1>To-Do List</h1>
+
   <div class="controls">
     <button id="undoBtn">Undo</button>
     <button id="redoBtn">Redo</button>
+    <button id="exportBtn" type="button">Export</button>
+    <input  type="file" id="importInput" style="display:none" accept="application/json">
+    <button id="importBtn" type="button">Import</button>
   </div>
+
   <form id="addForm">
-    <input type="text" id="newTask" placeholder="Add a new task..." required>
-    <input type="text" id="newAssignee" placeholder="Who is working on this?" class="assignee">
+    <input type="text" id="newTask"      placeholder="Add a new task…" required>
+    <input type="text" id="newAssignee"  placeholder="Who is working on this?" >
     <button type="submit">Add</button>
   </form>
+
   <ul id="todoList"></ul>
 
   <script>
-    const addForm = document.getElementById('addForm');
-    const newTask = document.getElementById('newTask');
+    /* ------------ helpers ------------ */
+    function saveState(){
+      undoStack.push(JSON.stringify(todos));
+      if (undoStack.length>100) undoStack.shift();
+      redoStack=[];
+    }
+    function saveTodos(){
+      localStorage.setItem('todos',JSON.stringify(todos));
+    }
+    function makeEditable(span, obj, field){
+      span.contentEditable=true;
+      span.classList.add('editable');
+      span.dataset.placeholder=field.charAt(0).toUpperCase()+field.slice(1)+'…';
+      span.addEventListener('input',()=>{ obj[field]=span.textContent.trim(); saveTodos(); });
+    }
+
+    /* ------------ app vars ------------ */
+    const addForm     = document.getElementById('addForm');
+    const newTask     = document.getElementById('newTask');
     const newAssignee = document.getElementById('newAssignee');
-    const todoList = document.getElementById('todoList');
-    const undoBtn = document.getElementById('undoBtn');
-    const redoBtn = document.getElementById('redoBtn');
+    const todoList    = document.getElementById('todoList');
+    const undoBtn     = document.getElementById('undoBtn');
+    const redoBtn     = document.getElementById('redoBtn');
+    const importInput = document.getElementById('importInput');
+    const exportBtn   = document.getElementById('exportBtn');
+    const importBtn   = document.getElementById('importBtn');
 
-    // Undo/redo stacks
-    let undoStack = [];
-    let redoStack = [];
-
-    // Load tasks from localStorage
-    let todos = JSON.parse(localStorage.getItem('todos') || '[]');
+    let undoStack=[], redoStack=[];
+    let todos = JSON.parse(localStorage.getItem('todos')||'[]');
     renderTodos();
 
-    function saveState() {
-      undoStack.push(JSON.stringify(todos));
-      if (undoStack.length > 100) undoStack.shift(); // Limit stack size
-      redoStack = [];
-    }
-
-    function saveTodos() {
-      localStorage.setItem('todos', JSON.stringify(todos));
-    }
-
-    addForm.onsubmit = function(e) {
+    /* ------------ add task ------------ */
+    addForm.onsubmit = e=>{
       e.preventDefault();
       saveState();
-      todos.push({ 
-        text: newTask.value, 
-        done: false, 
-        comment: '', 
-        assignee: newAssignee.value 
-      });
-      saveTodos();
-      renderTodos();
-      newTask.value = '';
-      newAssignee.value = '';
+      todos.push({text:newTask.value,done:false,comment:'',assignee:newAssignee.value,subtasks:[]});
+      saveTodos(); renderTodos();
+      newTask.value=''; newAssignee.value='';
     };
 
-    function renderTodos() {
-      todoList.innerHTML = '';
-      todos.forEach((todo, idx) => {
-        const li = document.createElement('li');
-        li.className = 'todo-item';
+    /* ------------ render ------------ */
+    function renderTodos(){
+      todoList.innerHTML='';
+      todos.forEach((todo,idx)=>{
+        const li=document.createElement('li'); li.className='todo-item';
 
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.checked = todo.done;
-        checkbox.onchange = () => {
-          saveState();
-          todos[idx].done = checkbox.checked;
-          saveTodos();
-          renderTodos();
-        };
+        const cb=document.createElement('input');
+        cb.type='checkbox'; cb.checked=todo.done;
+        cb.onchange=()=>{saveState();todo.done=cb.checked;saveTodos();renderTodos();};
 
-        const label = document.createElement('span');
-        label.textContent = ' ' + todo.text + ' ';
-        if (todo.done) label.className = 'completed';
+        const label=document.createElement('span');
+        label.textContent=' '+todo.text+' ';
+        if(todo.done) label.className='completed';
+        // Make main task text editable
+        makeEditable(label, todo, 'text');
 
-        const assignee = document.createElement('input');
-        assignee.type = 'text';
-        assignee.placeholder = 'Who is working on this?';
-        assignee.className = 'assignee';
-        assignee.value = todo.assignee || '';
-        assignee.oninput = () => {
-          saveState();
-          todos[idx].assignee = assignee.value;
-          saveTodos();
-        };
+        const ass=document.createElement('span');
+        ass.textContent=todo.assignee||'';
+        makeEditable(ass,todo,'assignee');
 
-        const comment = document.createElement('input');
-        comment.type = 'text';
-        comment.placeholder = 'Add comment...';
-        comment.className = 'comment';
-        comment.value = todo.comment;
-        comment.oninput = () => {
-          saveState();
-          todos[idx].comment = comment.value;
-          saveTodos();
-        };
+        const com=document.createElement('span');
+        com.textContent=todo.comment||'';
+        makeEditable(com,todo,'comment');
 
-        const upBtn = document.createElement('button');
-        upBtn.textContent = '↑';
-        upBtn.className = 'move-btn';
-        upBtn.disabled = idx === 0;
-        upBtn.onclick = (e) => {
-          e.preventDefault();
-          if (idx > 0) {
+        const up=document.createElement('button');
+        up.textContent='↑'; up.className='move-btn'; up.disabled=!idx;
+        up.onclick=e=>{e.preventDefault();if(idx){saveState();[todos[idx-1],todos[idx]]=[todos[idx],todos[idx-1]];saveTodos();renderTodos();}};
+
+        const down=document.createElement('button');
+        down.textContent='↓'; down.className='move-btn'; down.disabled=idx===todos.length-1;
+        down.onclick=e=>{e.preventDefault();if(idx<todos.length-1){saveState();[todos[idx+1],todos[idx]]=[todos[idx],todos[idx+1]];saveTodos();renderTodos();}};
+
+        const rm=document.createElement('button');
+        rm.textContent='Remove'; rm.className='remove-btn';
+        rm.onclick=e=>{e.preventDefault();saveState();todos.splice(idx,1);saveTodos();renderTodos();};
+
+        li.append(cb,label,ass,com,up,down,rm);
+
+        /* ----- subtasks ----- */
+        const subList=document.createElement('ul'); subList.style.marginLeft='2em';
+        todo.subtasks??=[];
+        todo.subtasks.forEach((sub,sidx)=>{
+          const subLi=document.createElement('li'); subLi.style.listStyle='circle';
+
+          const scb=document.createElement('input');
+          scb.type='checkbox'; scb.checked=sub.done;
+          scb.onchange=()=>{
             saveState();
-            [todos[idx - 1], todos[idx]] = [todos[idx], todos[idx - 1]];
-            saveTodos();
-            renderTodos();
+            sub.done=scb.checked;
+            // Auto-check/uncheck main if all/any sub is checked/unchecked
+            if (todo.subtasks.length && todo.subtasks.every(st=>st.done)) todo.done = true;
+            else todo.done = false;
+            saveTodos();renderTodos();
+          };
+
+          const stext=document.createElement('span');
+          stext.textContent=sub.text; makeEditable(stext,sub,'text');
+          // Add line-through if subtask is done
+          if(sub.done) stext.className='completed';
+
+          const sass=document.createElement('span');
+          sass.textContent=sub.assignee||''; makeEditable(sass,sub,'assignee');
+
+          const scom=document.createElement('span');
+          scom.textContent=sub.comment||''; makeEditable(scom,sub,'comment');
+
+          // Add up/down buttons for subtasks
+          const sup=document.createElement('button');
+          sup.textContent='↑'; sup.className='move-btn'; sup.disabled=!sidx;
+          sup.onclick=e=>{e.preventDefault();if(sidx){saveState();[todo.subtasks[sidx-1],todo.subtasks[sidx]]=[todo.subtasks[sidx],todo.subtasks[sidx-1]];saveTodos();renderTodos();}};
+
+          const sdown=document.createElement('button');
+          sdown.textContent='↓'; sdown.className='move-btn'; sdown.disabled=sidx===todo.subtasks.length-1;
+          sdown.onclick=e=>{e.preventDefault();if(sidx<todo.subtasks.length-1){saveState();[todo.subtasks[sidx+1],todo.subtasks[sidx]]=[todo.subtasks[sidx],todo.subtasks[sidx+1]];saveTodos();renderTodos();}};
+
+          const srm=document.createElement('button');
+          srm.textContent='Remove'; srm.className='remove-btn';
+          srm.onclick=e=>{e.preventDefault();saveState();todo.subtasks.splice(sidx,1);saveTodos();renderTodos();};
+
+          subLi.append(scb,stext,sass,scom,sup,sdown,srm); subList.appendChild(subLi);
+        });
+
+        /* add-subtask form */
+        const addSub=document.createElement('form');
+        addSub.onsubmit=e=>{
+          e.preventDefault();
+          const [t,a,c]=addSub.querySelectorAll('input');
+          if(t.value.trim()){
+            saveState();
+            todo.subtasks.push({text:t.value.trim(),done:false,assignee:a.value.trim(),comment:c.value.trim()});
+            saveTodos(); renderTodos();
           }
         };
+        const tIn=document.createElement('input'); tIn.placeholder='Add subtask…';
+        const aIn=document.createElement('input'); aIn.placeholder='Who?';
+        const cIn=document.createElement('input'); cIn.placeholder='Comment…';
+        const sb=document.createElement('button'); sb.type='submit'; sb.textContent='Add Subtask';
+        addSub.append(tIn,aIn,cIn,sb); subList.appendChild(addSub);
 
-        const downBtn = document.createElement('button');
-        downBtn.textContent = '↓';
-        downBtn.className = 'move-btn';
-        downBtn.disabled = idx === todos.length - 1;
-        downBtn.onclick = (e) => {
-          e.preventDefault();
-          if (idx < todos.length - 1) {
-            saveState();
-            [todos[idx + 1], todos[idx]] = [todos[idx], todos[idx + 1]];
-            saveTodos();
-            renderTodos();
-          }
-        };
-
-        const removeBtn = document.createElement('button');
-        removeBtn.textContent = 'Remove';
-        removeBtn.className = 'remove-btn';
-        removeBtn.onclick = (e) => {
-          e.preventDefault();
-          saveState();
-          todos.splice(idx, 1);
-          saveTodos();
-          renderTodos();
-        };
-
-        li.appendChild(checkbox);
-        li.appendChild(label);
-        li.appendChild(assignee);
-        li.appendChild(comment);
-        li.appendChild(upBtn);
-        li.appendChild(downBtn);
-        li.appendChild(removeBtn);
+        li.appendChild(subList);
         todoList.appendChild(li);
       });
     }
 
-    undoBtn.onclick = function() {
-      if (undoStack.length > 0) {
-        redoStack.push(JSON.stringify(todos));
-        todos = JSON.parse(undoStack.pop());
-        saveTodos();
-        renderTodos();
-      }
-    };
+    /* ------------ undo / redo ------------ */
+    undoBtn.onclick=()=>{if(undoStack.length){redoStack.push(JSON.stringify(todos));todos=JSON.parse(undoStack.pop());saveTodos();renderTodos();}};
+    redoBtn.onclick=()=>{if(redoStack.length){undoStack.push(JSON.stringify(todos));todos=JSON.parse(redoStack.pop());saveTodos();renderTodos();}};
 
-    redoBtn.onclick = function() {
-      if (redoStack.length > 0) {
-        undoStack.push(JSON.stringify(todos));
-        todos = JSON.parse(redoStack.pop());
-        saveTodos();
-        renderTodos();
-      }
+    /* ------------ import / export ------------ */
+    exportBtn.onclick=()=>{
+      const blob=new Blob([JSON.stringify(todos,null,2)],{type:'application/json'});
+      const url=URL.createObjectURL(blob);
+      const a=Object.assign(document.createElement('a'),{href:url,download:'todos.json'});
+      document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+    };
+    importBtn.onclick=()=>importInput.click();
+    importInput.onchange=e=>{
+      const f=e.target.files[0]; if(!f) return;
+      const r=new FileReader();
+      r.onload=evt=>{ try{
+          const data=JSON.parse(evt.target.result);
+          if(Array.isArray(data)){ saveState(); todos=data; saveTodos(); renderTodos(); alert('Imported!'); }
+          else alert('Invalid file.');
+        }catch{alert('Could not read file.');}};
+      r.readAsText(f); importInput.value='';
     };
   </script>
 </body>

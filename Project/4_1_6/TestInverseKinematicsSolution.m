@@ -24,66 +24,91 @@ for k = 1:N
             P(1),P(2),P(3));
 end
 
-%% 5. Joint limits (deg) & initial valid index
+%% 5. Joint limits (deg) & initial masks
 lim1 = [-170, 170];
 lim2 = [-100, 135];
 lim3 = [-200,  70];
-validIdx = Qdeg(1,:) >= lim1(1) & Qdeg(1,:) <= lim1(2) & ...
-           Qdeg(2,:) >= lim2(1) & Qdeg(2,:) <= lim2(2) & ...
-           Qdeg(3,:) >= lim3(1) & Qdeg(3,:) <= lim3(2);
+jointValid = ...
+    Qdeg(1,:) >= lim1(1) & Qdeg(1,:) <= lim1(2) & ...
+    Qdeg(2,:) >= lim2(1) & Qdeg(2,:) <= lim2(2) & ...
+    Qdeg(3,:) >= lim3(1) & Qdeg(3,:) <= lim3(2);
 
-%% 6. Enforce matching signs of X,Y,Z to goal
-% 6.1 Compute all end‐effector positions:
+%% 6. Compute all end‐effector positions
 P_all = zeros(3, N);
 for k = 1:N
     [~, orig, ~] = forwardKinematics(dh, Q(:,k));
     P_all(:,k) = orig(:,end);
 end
 
-% 6.2 Sign mask:
-tol = 1e-6;
-sg = sign(goal);
-sg(abs(goal) < tol) = 0;
-
-signMatch = true(1, N);
+%% 7. Sign‐match mask (nonzero axes only)
+sg = sign(goal);    % e.g. [1,0,1]
+signValid = true(1,N);
 for k = 1:N
     for ax = 1:3
-        if sg(ax) == 0
-            signMatch(k) = signMatch(k) && (abs(P_all(ax,k)) < tol);
-        else
-            signMatch(k) = signMatch(k) && (sign(P_all(ax,k)) == sg(ax));
+        if sg(ax)==0
+            continue;
         end
+        signValid(k) = signValid(k) && (sign(P_all(ax,k))==sg(ax));
     end
 end
 
-% 6.3 Combine masks
-validIdx = validIdx & signMatch;
+%% 8. Combine masks
+validIdx   = jointValid & signValid;
+invalidIdx = ~validIdx;
 
-%% 7. Print VALID solutions table
+%% 9. Print INVALID solutions with reasons
+fprintf('\n=== Invalid Solutions and Reasons ===\n');
+fprintf('%-6s | %s\n','Sol#','Reason');
+fprintf('%s\n', repmat('-',1,6+3+20));
+for k = find(invalidIdx)
+    reasons = {};
+    % joint limits
+    if ~jointValid(k)
+        if Qdeg(1,k)<lim1(1) || Qdeg(1,k)>lim1(2)
+            reasons{end+1} = 'θ1 out of limits'; end
+        if Qdeg(2,k)<lim2(1) || Qdeg(2,k)>lim2(2)
+            reasons{end+1} = 'θ2 out of limits'; end
+        if Qdeg(3,k)<lim3(1) || Qdeg(3,k)>lim3(2)
+            reasons{end+1} = 'θ3 out of limits'; end
+    end
+    % sign mismatch
+    if ~signValid(k)
+        for ax = 1:3
+            if sg(ax)==0
+                continue;
+            elseif sign(P_all(ax,k))~=sg(ax)
+                reasons{end+1} = sprintf('axis %d sign mismatch',ax);
+            end
+        end
+    end
+    % join reasons
+    reasonStr = strjoin(reasons, ', ');
+    fprintf('%6d | %s\n', k, reasonStr);
+end
+
+%% 10. Print VALID solutions table (renumbered)
 fprintf('\n=== Valid Solutions (within joint limits & sign match) ===\n');
 fprintf('%-6s | %8s %8s %8s %8s %8s %8s || %10s %10s %10s   (from FK)\n', ...
         'Sol#','t1','t2','t3','t4','t5','t6','X(cm)','Y(cm)','Z(cm)');
 fprintf('%s\n', repmat('-',1,6+3+7*8+2+3*10));
-
 idx = find(validIdx);
 for i = 1:numel(idx)
     k = idx(i);
     P = P_all(:,k);
     fprintf('%6d | %8.1f %8.1f %8.1f %8.1f %8.1f %8.1f || %10.2f %10.2f %10.2f\n', ...
-            k, Qdeg(1,k),Qdeg(2,k),Qdeg(3,k),Qdeg(4,k),Qdeg(5,k),Qdeg(6,k), ...
+            i, Qdeg(1,k),Qdeg(2,k),Qdeg(3,k),Qdeg(4,k),Qdeg(5,k),Qdeg(6,k), ...
             P(1),P(2),P(3));
 end
 
-%% 8. Plot only VALID solutions
-axisLen = 50;                       
+%% 11. Plot only VALID solutions (renumbered)
+axisLen = 50;
 quivOpt = {'AutoScale','off','MaxHeadSize',0.9,'LineWidth',1.2};
 cols    = {'r','g','b'};
 lbl     = {'X','Y','Z'};
-validSolutions = idx;
-
-for ii = 1:numel(validSolutions)
-    k = validSolutions(ii);
-    figure('Name',sprintf('Valid Solution %d',k),'NumberTitle','off');
+for i = 1:numel(idx)
+    k = idx(i);
+    thetaStr = num2str(Qdeg(:,k).', '%.1f ');
+    figure('Name',sprintf('Valid #%d',i),'NumberTitle','off');
     [~, orig, rots] = forwardKinematics(dh, Q(:,k));
     plot3(orig(1,:),orig(2,:),orig(3,:),'-ok','LineWidth',2,'MarkerSize',4);
     hold on;
@@ -93,13 +118,12 @@ for ii = 1:numel(validSolutions)
             v = R(:,ax)*axisLen;
             quiver3(O(1),O(2),O(3),v(1),v(2),v(3),cols{ax},quivOpt{:});
             text(O(1)+1.1*v(1),O(2)+1.1*v(2),O(3)+1.1*v(3), ...
-                 sprintf('%s%d',lbl{ax},j-1), 'FontSize',8,'FontWeight','bold');
+                 sprintf('%s%d',lbl{ax},j-1),'FontSize',8,'FontWeight','bold');
         end
     end
     axis equal; grid on;
     xlabel('X (cm)'); ylabel('Y (cm)'); zlabel('Z (cm)');
     view(45,30);
-    thetaStr = num2str(Qdeg(:,k).', '%.1f ');
-    title(sprintf('Valid Solution %d: θ = [%s]°', k, thetaStr));
+    title(sprintf('Valid #%d – θ = [%s]°', i, thetaStr));
     hold off;
 end

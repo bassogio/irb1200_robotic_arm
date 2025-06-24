@@ -4,14 +4,15 @@ clc; clear; close all;
 params = struct('d1',399,'a2',350,'a3',42,'d4',351,'d6',82);
 
 % Test joint configs (deg)
-test_angles = [ ...
-     0   0    0   0   0   0;
-    90   0    0   0   0   0;
-    90  90    0   0   0   0;
-    90  90  -90   0   0   0;
-    90  90  -90  90   0   0;
-    90  90  -90  90  90   0;
-    90  90  -90  90  90  90 ];
+% test_angles = [ ...
+%      0   0    0   0   0   0;
+%     90   0    0   0   0   0;
+%     90  90    0   0   0   0;
+%     90  90  -90   0   0   0;
+%     90  90  -90  90   0   0;
+%     90  90  -90  90  90   0;
+%     90  90  -90  90  90  90 ];
+test_angles = [0, -45, 45, 0, 90, 0];
 
 axisLen = 50;                      % arrow length in cm
 quivOpts = {'AutoScale','off','MaxHeadSize',1,'LineWidth',1.2};
@@ -25,8 +26,19 @@ for k = 1:size(test_angles,1)
     
     % Compute forward kinematics
     ang_rad = deg2rad(test_angles(k,:));
-    [~, origins, rots] = forwardKinematics(params, ang_rad);
+    [T06, origins, rots] = forwardKinematics(params, ang_rad);
     
+    % Print end-effector rotation matrix
+    R06 = T06(1:3,1:3);
+    fprintf('Rotation matrix for config [%s]°:\n', num2str(test_angles(k,:)));
+    disp(R06);
+
+    % Extract and print end-effector position
+    P06 = T06(1:3,4);
+    fprintf('Position for config [%s]°: [%.2f, %.2f, %.2f] cm\n\n', ...
+            num2str(test_angles(k,:)), P06(1), P06(2), P06(3));
+
+
     % Plot links
     plot3(origins(1,:),origins(2,:),origins(3,:),'-ok', ...
           'LineWidth',2,'MarkerSize',4);

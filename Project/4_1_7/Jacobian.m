@@ -1,5 +1,5 @@
 function J = Jacobian(dh, thetas)
-    % Get origins p_i and rotation matrices R_i from FK
+    % Get origins p_i and rotation matrices R_i from ForwardKinematics
     [~, origins, rots] = forwardKinematics(dh, thetas);
 
     pe = origins(:,end);          % end-effector origin

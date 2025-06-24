@@ -4,15 +4,15 @@ clc; clear; close all;
 params = struct('d1',399,'a2',350,'a3',42,'d4',351,'d6',82);
 
 % ===Test joint configs (deg) ===
-% test_angles = [ ...
-%      0   0    0   0   0   0;
-%     90   0    0   0   0   0;
-%     90  90    0   0   0   0;
-%     90  90  -90   0   0   0;
-%     90  90  -90  90   0   0;
-%     90  90  -90  90  90   0;
-%     90  90  -90  90  90  90 ];
-test_angles = [0, -45, 45, 0, 90, 0];
+test_angles = [ ...
+     0   0    0   0   0   0;
+    90   0    0   0   0   0;
+    90  90    0   0   0   0;
+    90  90  -90   0   0   0;
+    90  90  -90  90   0   0;
+    90  90  -90  90  90   0;
+    90  90  -90  90  90  90 ];
+% test_angles = [0, -45, 45, 0, 90, 0];
 
 axisLen = 50;                      % arrow length in cm
 quivOpts = {'AutoScale','off','MaxHeadSize',1,'LineWidth',1.2};

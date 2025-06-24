@@ -1,9 +1,9 @@
 clc; clear; close all;
 
-% DH constants (cm)
+% === DH constants ===
 params = struct('d1',399,'a2',350,'a3',42,'d4',351,'d6',82);
 
-% Test joint configs (deg)
+% ===Test joint configs (deg) ===
 % test_angles = [ ...
 %      0   0    0   0   0   0;
 %     90   0    0   0   0   0;

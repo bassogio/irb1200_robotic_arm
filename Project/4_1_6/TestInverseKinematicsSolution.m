@@ -115,28 +115,51 @@ fprintf('%6d | %8.1f %8.1f %8.1f %8.1f %8.1f %8.1f || %10.2f %10.2f %10.2f\n', .
         bestI, Qdeg(1,bestK),Qdeg(2,bestK),Qdeg(3,bestK),Qdeg(4,bestK),Qdeg(5,bestK),Qdeg(6,bestK), ...
         P_best(1),P_best(2),P_best(3));
 
-%% 14. Plot only the BEST solution
+%% 14. Plot EACH valid solution in its own window
 axisLen = 50;
 quivOpt = {'AutoScale','off','MaxHeadSize',0.9,'LineWidth',1.2};
 cols    = {'r','g','b'};
 lbl     = {'X','Y','Z'};
-thetaStr = num2str(Qdeg(:,bestK).', '%.1f ');
 
-figure('Name','Best IK Solution','NumberTitle','off');
-[~, orig, rots] = forwardKinematics(dh, Q(:,bestK));
-plot3(orig(1,:),orig(2,:),orig(3,:),'-ok','LineWidth',2,'MarkerSize',4);
-hold on;
-for j = 1:size(orig,2)
-    O = orig(:,j); R = rots(:,:,j);
-    for ax = 1:3
-        v = R(:,ax)*axisLen;
-        quiver3(O(1),O(2),O(3),v(1),v(2),v(3),cols{ax},quivOpt{:});
-        text(O(1)+1.1*v(1),O(2)+1.1*v(2),O(3)+1.1*v(3), ...
-             sprintf('%s%d',lbl{ax},j-1),'FontSize',8,'FontWeight','bold');
+for i = 1:numel(validList)
+    k = validList(i);
+    thetaStr = num2str(Qdeg(:,k).', '%.1f ');
+    
+    % New figure per solution
+    figure('Name', sprintf('Valid IK Solution %d', i), ...
+           'NumberTitle','off');
+    
+    % Compute FK for this solution
+    [~, orig, rots] = forwardKinematics(dh, Q(:,k));
+    
+    % Plot the kinematic chain
+    plot3(orig(1,:), orig(2,:), orig(3,:), '-ok', ...
+          'LineWidth',2, 'MarkerSize',4);
+    hold on;
+    
+    % Plot the goal
+    plot3(goal(1), goal(2), goal(3), 'p', ...
+          'MarkerSize',12, 'MarkerFaceColor','m', 'MarkerEdgeColor','k');
+    text(goal(1), goal(2), goal(3), '  Goal', ...
+         'FontSize',10, 'Color','m', 'FontWeight','bold');
+    
+    % Plot joint-frame axes
+    for j = 1:size(orig,2)
+        O = orig(:,j); R = rots(:,:,j);
+        for ax = 1:3
+            v = R(:,ax) * axisLen;
+            quiver3(O(1),O(2),O(3), v(1),v(2),v(3), ...
+                    cols{ax}, quivOpt{:});
+            text(O(1)+1.1*v(1), O(2)+1.1*v(2), O(3)+1.1*v(3), ...
+                 sprintf('%s%d',lbl{ax},j-1), ...
+                 'FontSize',8, 'FontWeight','bold');
+        end
     end
+    
+    % Finalize
+    axis equal; grid on;
+    xlabel('X (cm)'); ylabel('Y (cm)'); zlabel('Z (cm)');
+    view(45,30);
+    title(sprintf('Solution %d – θ = [%s]°', i, thetaStr));
+    hold off;
 end
-axis equal; grid on;
-xlabel('X (cm)'); ylabel('Y (cm)'); zlabel('Z (cm)');
-view(45,30);
-title(sprintf('Best Solution – θ = [%s]°', thetaStr));
-hold off;

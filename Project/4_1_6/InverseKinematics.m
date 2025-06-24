@@ -1,9 +1,4 @@
 function Q = InverseKinematics(dh, goal)
-%INVERSEKINEMATICS  Position-only IK for ABB-IRB1200 (th4–th6 = 0)
-%   Q = InverseKinematics(dh, goal) returns a 6×N matrix of joint angles
-%   (radians) that place the wrist center at goal = [Px; Py; Pz] (cm).
-%   dh must contain fields: d1, a2, d4, d6 (all in cm).
-
     % 1) Unpack DH parameters
     d1_val = dh.d1;
     L2     = dh.a2;
@@ -51,7 +46,6 @@ function Q = InverseKinematics(dh, goal)
 end
 
 function th2 = computeTh2(r, s, L2, L3, phi)
-% computeTh2  First solution for joint 2
     omega  = atan2(s, r);
     lambda = atan2(L3*sin(phi), L2 + L3*cos(phi));
     th2     = -((omega - lambda) - pi/2);

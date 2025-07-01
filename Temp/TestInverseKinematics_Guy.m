@@ -2,17 +2,22 @@ clc;
 clear all;
 close all;
 
-%% Step 0: Define Robotic arm constants
-% D = [0.399 0 0 0 0 0.082];
-D = [0.399 0 0 0.042 0 0.082];
-% A = [0 0.35 0.351 0.042 0 0];
-A = [0 0.35 0.351 0 0 0];
-Alpha = deg2rad([-90 0 90 0 0 0]);
-theta_zero_state = [0 -90 90 -90 0 0];
-% theta_zero_state = [0 0 0 0 0 0];
+%% Step 0: Define Robotic arm constants (imaginary joint is represented as 00)
 
-%% Step 1: Define test joint angles (degrees)
-test_angles_deg = [0 0 0 0 0 0];
+% D = [0.399 0 0 0 0 0.082];
+D = [0.399 0 0 00 0 0 0];
+% A = [0 0.35 0.351 0.042 0 0];
+A = [0 0 0.35 0.042 0.351 0 0.082]; 
+
+
+% Alpha = deg2rad([90 0 -90 90 0 0]);
+% theta_zero_state = [0 90 -90 0 0 0];
+
+Alpha = deg2rad([0 90 0 00 90 90 0]);
+theta_zero_state = [0 0 90 00 -90 0 0];
+
+%% Step 1: Define test joint angles (degrees) (00 represents imaginary joint and should't be changed)
+test_angles_deg = [0 0 0 00 0 0 0];
 
 %% Step 2: Compute FK
 Theta = deg2rad(test_angles_deg+theta_zero_state);

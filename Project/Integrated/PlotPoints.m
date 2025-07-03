@@ -1,4 +1,4 @@
-function PlotPoints(dh, angles, ang_offset)
+function PlotPoints(Orgs, Rots, T, angles, ang_offset)
 % Plots simulated robotic arm in all the orientations required
 % Input:
 %   dh – struct with fields a, d, alpha. Contains arrays of same size.
@@ -15,8 +15,10 @@ for k = 1:size(angles,1)
         'NumberTitle','off');
 
     % Compute forward kinematics
-    ang = deg2rad(angles(k,:)) + ang_offset;
-    [~, orgs, rots] = ForwardKinematics(dh, ang);
+    ang = transpose(deg2rad(angles(k,:)) + ang_offset);
+    % [~, orgs, rots] = ForwardKinematics(dh, ang);
+    orgs = subs(Orgs, T, ang);
+    rots = subs(Rots, T, ang);
 
     % Plot links
     plot3(orgs(1,:),orgs(2,:),orgs(3,:),'-ok', ...

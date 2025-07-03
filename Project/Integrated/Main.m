@@ -1,11 +1,12 @@
 clc; clear; close all;
 
+syms ('T',[6 1]);
+
 % DH constants (mm, rad)
 d = [399, 0, 0, 351, 0, 82];
 a = [0, 350, 42, 0, 0, 0];
-alph = [pi/2, 0, pi/2, -pi/2, pi/2, 0];
-t_offset = [0, pi/2, 0, 0, 0, -pi];
-t_offset_deg = rad2deg(t_offset);
+alph = sym([-pi/2, 0, -pi/2, pi/2, -pi/2, 0]);
+t_offset = sym([0, -pi/2, 0, 0, 0, -pi]);
 
 % Apply specific rotations (deg)
 theta = [0, 0, 0, 0, 0, 0];
@@ -19,28 +20,37 @@ dh = struct('d',d ,'a', a, 'alpha', alph);
 len = length(d);
 
 for i = 1:1:len
-    A = CreateTransMat(d(i), a(i), t(i), alph(i));
+    A = simplify(CreateTransMat(d(i), a(i), T(i), alph(i)));
     tr = sprintf("A(%d->%d)=",i-1,i);
     disp(tr);disp(A);
 end
 
 %% 4.1.4.2
-[A06, orgs, rots] = ForwardKinematics(dh, t);
+[A06, orgs, rots] = ForwardKinematics(dh, T);
 tr = "A(0->6)=";
 disp(tr);disp(A06);
 
 %% 4.1.4.3
 % Desired joint andles (deg)
+% angles = [ ...
+%     [ 0   0   0   0   0   0];
+%     [90   0   0   0   0   0];
+%     [90  90   0   0   0   0];
+%     [90  90  90   0   0   0];
+%     [90  90  90  90   0   0];
+%     [90  90  90  90  90   0];
+%     [90  90  90  90  90  90]];
+
 angles = [ ...
     [ 0   0   0   0   0   0];
-    [90   0   0   0   0   0];
-    [90  90   0   0   0   0];
-    [90  90  90   0   0   0];
-    [90  90  90  90   0   0];
-    [90  90  90  90  90   0];
-    [90  90  90  90  90  90]];
+    [ 90   0   0   90  90   0]];
 
-PlotPoints(dh, angles, t_offset);
+% PlotPoints(dh, angles, t_offset);
+PlotPoints(orgs, rots,T , angles, t_offset);
+
+%% 4.1.5.1
+
+
 
 % % Define test positions [x, y, z] in cm
 % test_pts = [ ...

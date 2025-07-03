@@ -17,15 +17,15 @@ d = dh.d;
 alpha = dh.alpha;
 
 % Preallocate
-T       = eye(4);
-origins = zeros(3,7);
-rots    = repmat(eye(3), [1,1,7]);
+T       = (eye(4));
+origins = sym(zeros(3,7));
+rots    = repmat(sym(eye(3)), [1,1,7]);
 origins(:,1) = [0;0;0];
 
 % Build chain
 for i = 1:6
     Ai = CreateTransMat(d(i), a(i), t(i), alpha(i));
-    T = T * Ai;
+    T = simplify(T * Ai);
     origins(:,i+1) = T(1:3,4);
     rots(:,:,i+1)  = T(1:3,1:3);
 end

@@ -6,13 +6,15 @@ function Simulate()
     q_home = zeros(6,1);
     [~, origins_home, ~] = forwardKinematics(dh, q_home);
     start_pos = origins_home(:,end)/10;  % in cm
-    start_rpy = [0 0 0];  % Home orientation
+    start_rpy = [0; 0; 0];  % Home orientation
 
-   
+    % Define target position and orientation
+    end_pos = start_pos + [10; 10; -50];  % example target 10cm in XYZ away
+    end_rpy = [0; 0; 0];                  % keep orientation same
 
     % --- Path generation ---
-    N = 100;
-    dt = 0.1;  % seconds between steps
+    N = 500;
+    dt = 1.0;  % seconds between steps
 
     % Interpolate position
     path_positions = [linspace(start_pos(1), end_pos(1), N);
@@ -92,17 +94,73 @@ function Simulate()
     xlabel('X (cm)'); ylabel('Y (cm)'); zlabel('Z (cm)');
     title('End-Effector Path in 3D Space');
 
-    % --- Compute velocity magnitude over time ---
+    % --- Compute velocity magnitude over time (simple difference) ---
     velocities = vecnorm(diff(EE_positions,1,2)/dt);
     time_vec = dt*(1:(N-1));
 
-    % --- Plot velocity over time ---
-    figure('Name','Velocity vs Time','NumberTitle','off');
+    figure('Name','Velocity vs Time (Simple)','NumberTitle','off');
     plot(time_vec, velocities, 'r', 'LineWidth', 2);
     grid on;
     xlabel('Time (s)');
     ylabel('Velocity (cm/s)');
-    title('End-Effector Linear Velocity Magnitude vs Time');
+    title('End-Effector Linear Velocity Magnitude (Simple Difference)');
+
+    % --- Jacobian-based velocity estimation ---
+    % Compute joint velocities (numerical derivative)
+    joint_velocities = diff(joint_trajectory,1,2) / dt;
+
+    % Initialize for storing end-effector velocities
+    ee_velocities = zeros(6, N-1);
+
+    for k = 1:(N-1)
+        theta_k = joint_trajectory(:,k);
+        q_dot_k = joint_velocities(:,k);
+        [J, ~, ~] = Jacobian(dh, theta_k);
+        ee_velocities(:,k) = J * q_dot_k;
+    end
+
+    % Plot Cartesian linear speed from Jacobian
+    linear_speed = vecnorm(ee_velocities(1:3,:),1,1);
+
+    figure('Name','EE Linear Speed via Jacobian','NumberTitle','off');
+    plot(time_vec, linear_speed, 'g', 'LineWidth', 2);
+    grid on;
+    xlabel('Time (s)');
+    ylabel('Linear Speed (mm/s)');
+    title('End-Effector Linear Velocity via Jacobian');
+
+    % --- Plot comparison on same figure
+    figure('Name','Linear Velocity Comparison','NumberTitle','off');
+    plot(time_vec, velocities, 'r', 'LineWidth', 2); hold on;
+    plot(time_vec, linear_speed/10, 'g', 'LineWidth', 2); % convert mm/s -> cm/s
+    grid on;
+    xlabel('Time (s)');
+    ylabel('Velocity (cm/s)');
+    legend('Simple diff (position)','Jacobian-based');
+    title('Comparison of Linear Velocity Estimates');
+    
+    % --- Plot Cartesian linear velocity components
+    figure('Name','EE Linear Velocity Components (Jacobian)','NumberTitle','off');
+    plot(time_vec, ee_velocities(1,:), 'r', 'LineWidth', 2); hold on;
+    plot(time_vec, ee_velocities(2,:), 'g', 'LineWidth', 2);
+    plot(time_vec, ee_velocities(3,:), 'b', 'LineWidth', 2);
+    grid on;
+    xlabel('Time (s)');
+    ylabel('Velocity (mm/s)');
+    legend('Vx','Vy','Vz');
+    title('End-Effector Linear Velocity Components (Jacobian)');
+    
+    % --- Plot Cartesian angular velocity components
+    figure('Name','EE Angular Velocity Components (Jacobian)','NumberTitle','off');
+    plot(time_vec, ee_velocities(4,:), 'r', 'LineWidth', 2); hold on;
+    plot(time_vec, ee_velocities(5,:), 'g', 'LineWidth', 2);
+    plot(time_vec, ee_velocities(6,:), 'b', 'LineWidth', 2);
+    grid on;
+    xlabel('Time (s)');
+    ylabel('Angular Velocity (rad/s)');
+    legend('Wx','Wy','Wz');
+    title('End-Effector Angular Velocity Components (Jacobian)');
+
 end
 
 function setAxesEqual3D(ax)
@@ -114,3 +172,4 @@ function setAxesEqual3D(ax)
     ylim(ax, [yMid - maxRange/2, yMid + maxRange/2]);
     zlim(ax, [zMid - maxRange/2, zMid + maxRange/2]);
 end
+

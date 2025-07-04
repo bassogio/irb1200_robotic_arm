@@ -68,3 +68,16 @@ scatter(workspace_points(:,2), workspace_points(:,3), 10, 'filled');
 title('Side View (Y–Z)');
 xlabel('Y [m]'); ylabel('Z [m]');
 axis equal; grid on;
+
+
+% === Compute workspace limits ===
+min_vals = min(workspace_points);
+max_vals = max(workspace_points);
+
+fprintf('\nEstimated Workspace Limits:\n');
+fprintf('X: %.3f m to %.3f m\n', min_vals(1), max_vals(1));
+fprintf('Y: %.3f m to %.3f m\n', min_vals(2), max_vals(2));
+fprintf('Z: %.3f m to %.3f m\n', min_vals(3), max_vals(3));
+
+
+

@@ -7,8 +7,8 @@ function Simulate()
     [~, origins_home, ~] = forwardKinematics(dh, q_home);
     start_pos = origins_home(:,end)/10;  % in cm
     start_rpy = [0 0 0];  % Home orientation
-    end_pos = start_pos + [10; 10; -50];  % example target 10cm in XYZ away
-    end_rpy = [0; 0; 0];  % keep orientation same, or set target RPY
+
+   
 
     % --- Path generation ---
     N = 100;

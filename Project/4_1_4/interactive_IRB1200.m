@@ -52,6 +52,16 @@ function interactive_IRB1200()
             'Units','normalized','Position',[0.01, 0.9 - (i-1)*0.13, 0.03, 0.05]);
     end
 
+    % Add Home button
+    uicontrol(fig, 'Style', 'pushbutton', 'String', 'Home', ...
+        'Units', 'normalized', 'Position', [0.05, 0.05, 0.1, 0.05], ...
+        'Callback', @(src, event) home_all());
+
+    % Add Demo button
+    uicontrol(fig, 'Style', 'pushbutton', 'String', 'Demo', ...
+        'Units', 'normalized', 'Position', [0.17, 0.05, 0.1, 0.05], ...
+        'Callback', @(src, event) run_demo());
+
     update_plot();
 
     function update_from_slider(j)
@@ -111,6 +121,46 @@ function interactive_IRB1200()
 
         setAxesEqual3D(ax);
         hold(ax, 'off');
+    end
+
+    function home_all()
+        theta(:) = 0;
+        for j = 1:6
+            sliders(j).Value = theta(j);
+            edits(j).String = sprintf('%.1f', theta(j));
+        end
+        update_plot();
+    end
+
+    function run_demo()
+        home_all();
+        pause(1);
+
+        for j = 1:6
+            posLimit = joint_limits(j, 2);
+            negLimit = joint_limits(j, 1);
+
+            % Move to positive limit
+            move_joint(j, 0, posLimit);
+
+            % Move to negative limit
+            move_joint(j, posLimit, negLimit);
+
+            % Return to home
+            move_joint(j, negLimit, 0);
+        end
+    end
+
+    function move_joint(j, startVal, endVal)
+        steps = 20;
+        vals = linspace(startVal, endVal, steps);
+        for v = vals
+            theta(j) = v;
+            sliders(j).Value = v;
+            edits(j).String = sprintf('%.1f', v);
+            update_plot();
+            pause(0.005);
+        end
     end
 end
 

@@ -6,13 +6,13 @@ syms ('T',[6 1]);
 d = [399, 0, 0, 351, 0, 82];
 a = [0, 350, 42, 0, 0, 0];
 alph = sym([-pi/2, 0, -pi/2, pi/2, -pi/2, 0]);
-t_offset = sym([0, -pi/2, 0, 0, 0, -pi]);
+t_offset = sym([0, pi/2, 0, 0, 0, pi]);
 
 % Apply specific rotations (deg)
 theta = [0, 0, 0, 0, 0, 0];
 
 % Apply joint offsets
-t = deg2rad(theta) + t_offset;
+t = deg2rad(theta) - t_offset;
 
 dh = struct('d',d ,'a', a, 'alpha', alph);
 
@@ -31,26 +31,25 @@ tr = "A(0->6)=";
 disp(tr);disp(A06);
 
 %% 4.1.4.3
-% Desired joint andles (deg)
-% angles = [ ...
-%     [ 0   0   0   0   0   0];
-%     [90   0   0   0   0   0];
-%     [90  90   0   0   0   0];
-%     [90  90  90   0   0   0];
-%     [90  90  90  90   0   0];
-%     [90  90  90  90  90   0];
-%     [90  90  90  90  90  90]];
-
+% Desired joint angles (deg)
 angles = [ ...
     [ 0   0   0   0   0   0];
-    [ 90   0   0   90  90   0]];
+    [90   0   0   0   0   0];
+    [90  90   0   0   0   0];
+    [90  90  90   0   0   0];
+    [90  90  90  90   0   0];
+    [90  90  90  90  90   0]];
 
 % PlotPoints(dh, angles, t_offset);
-PlotPoints(orgs, rots,T , angles, t_offset);
+PlotPoints(orgs, rots, T, angles, t_offset);
 
-%% 4.1.5.1
+%% 4.1.5
+% % Proccess takes a long time to operate. enable it on your own discretion.
+% WorkSpace(A06, T, t_offset);
+% 
 
-
+%% 4.1.6
+solutions = InverseKinematic(dh, A06, T, t);
 
 % % Define test positions [x, y, z] in cm
 % test_pts = [ ...

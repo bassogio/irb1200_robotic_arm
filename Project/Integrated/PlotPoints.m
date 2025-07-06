@@ -15,8 +15,7 @@ for k = 1:size(angles,1)
         'NumberTitle','off');
 
     % Compute forward kinematics
-    ang = transpose(deg2rad(angles(k,:)) + ang_offset);
-    % [~, orgs, rots] = ForwardKinematics(dh, ang);
+    ang = transpose(deg2rad(angles(k,:)) - ang_offset);
     orgs = subs(Orgs, T, ang);
     rots = subs(Rots, T, ang);
 

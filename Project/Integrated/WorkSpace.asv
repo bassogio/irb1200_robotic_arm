@@ -8,31 +8,28 @@ theta_range1 = deg2rad(0:stp1:360-stp1);  % 0 to 360° in radians
 theta_range2 = deg2rad(0:stp2:360-stp2);  % 0 to 360° in radians
 
 % === Initialise point cloud ===
-len1 = numel(theta_range1);
-len2 = numel(theta_range2);
-total = len1*len2^4;            % Total number of samples
+len = numel(theta_range2);
+total = len^5;            % Total number of samples
 workspace_points = zeros([total,3]);     % Preallocate empty array
 
 % === Loop over all combinations of θ1, θ2, θ3 ===
 sprintf('Calculating reachable points...\n');
 counter = 0;                               % Initialize progress counter
 
-tic
+for i1 = 1:1:len
+    t1 = theta_range2(i1);
 
-for i1 = 1:1:len1
-    t1 = theta_range1(i1);
-
-    for i2 = 1:1:len2
+    for i2 = 1:1:len
         t2 = theta_range2(i2);
 
-        for i3 = 1:1:len2
+        for i3 = 1:1:len
             t3 = theta_range2(i3);
 
-            for i4 = 1:1:len2
+            for i4 = 1:1:len
                 t4 = theta_range2(i4);
 
-                i_14 = i1*len2^4 + i2*len2^3 + i3*len2^2 + i4*len2;
-                parfor i5 = 1:1:len2
+                i_14 = i1*len^4 + i2*len^3 + i3*len^2 + i4*len;
+                parfor i5 = 1:1:len
                     t5 = theta_range2(i5);
 
                     thetas = [t1, t2, t3, t4, t5, 0] - offset;
@@ -48,8 +45,6 @@ for i1 = 1:1:len1
         end
     end
 end
-
-toc
 
 % === Plot workspace only (no robot) ===
 figure('Name', 'IRB 1200 Workspace Views (numeric FK)', ...

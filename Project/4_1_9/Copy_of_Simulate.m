@@ -10,7 +10,7 @@ function Simulate()
 
     % Define target position and orientation
     end_pos = [600; 0; 800];       % Absolute target in mm
-    end_rpy = [-90; 0; -90];           % Target RPY in degrees
+    end_rpy = [-90; 0; 90];           % Target RPY in degrees
 
     % --- Check if end_pos is reachable before path planning ---
     goal_test = [end_pos; end_rpy];
@@ -23,17 +23,15 @@ function Simulate()
 
     % --- Path generation ---
     N = 100;
-    dt = 0.1;  % seconds between steps
+    T_total = 10;        % total motion duration in seconds
+    t_vec = linspace(0, T_total, N);
+    dt = T_total / (N - 1);
+    s_profile = trapezoidalProfile(t_vec, T_total, 0.2*T_total);  
 
     % Interpolate position (mm)
-    path_positions = [linspace(start_pos(1), end_pos(1), N);
-                       linspace(start_pos(2), end_pos(2), N);
-                       linspace(start_pos(3), end_pos(3), N)];
+    path_positions = start_pos * ones(1,N) + (end_pos - start_pos) * s_profile;
+    path_rpys = start_rpy * ones(1,N) + (end_rpy - start_rpy) * s_profile;
 
-    % Interpolate RPY (degrees)
-    path_rpys = [linspace(start_rpy(1), end_rpy(1), N);
-                  linspace(start_rpy(2), end_rpy(2), N);
-                  linspace(start_rpy(3), end_rpy(3), N)];
 
     % --- For storing robot joint angles ---
     joint_trajectory = zeros(6,N);
@@ -181,4 +179,25 @@ function setAxesEqual3D(ax)
     xlim(ax, [xMid - maxRange/2, xMid + maxRange/2]);
     ylim(ax, [yMid - maxRange/2, yMid + maxRange/2]);
     zlim(ax, [zMid - maxRange/2, zMid + maxRange/2]);
+end
+
+function s = trapezoidalProfile(t, T, Ta)
+    % Compute trapezoidal time-scaling function s(t) in [0,1]
+    % t - time vector
+    % T - total duration
+    % Ta - acceleration (and deceleration) time
+
+    Vmax = 1 / (T - Ta);  % Ensure area under v(t) = 1
+
+    s = zeros(size(t));
+    for i = 1:length(t)
+        if t(i) < Ta
+            s(i) = 0.5 * Vmax / Ta * t(i)^2;
+        elseif t(i) < T - Ta
+            s(i) = Vmax * (t(i) - Ta/2);
+        else
+            dt_dec = t(i) - (T - Ta);
+            s(i) = 1 - 0.5 * Vmax / Ta * (T - t(i))^2;
+        end
+    end
 end

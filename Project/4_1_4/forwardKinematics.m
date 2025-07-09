@@ -21,7 +21,7 @@ function [T06, origins, rots] = forwardKinematics(dh, thetas)
 
     % === Apply any joint-specific angular offsets ===
     t = [ thetas(1);
-          thetas(2) - pi/2;
+          thetas(2) + pi/2;
           thetas(3);
           thetas(4);
           thetas(5);
@@ -30,7 +30,7 @@ function [T06, origins, rots] = forwardKinematics(dh, thetas)
     % === Define the rest of the DH parameters for all six joints ===
     a     = [   0,  a2,  a3,   0,   0,   0 ];    % link lengths
     d     = [  d1,   0,   0,  d4,   0,  d6 ];    % link offsets
-    alpha = [-pi/2,  0, -pi/2, pi/2, -pi/2, 0 ];  % link twists
+    alpha = [pi/2,  0, -pi/2, pi/2, -pi/2, 0 ];  % link twists
 
     % === Preallocate outputs ===
     T       = eye(4);                         % running transform
